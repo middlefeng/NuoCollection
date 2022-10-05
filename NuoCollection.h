@@ -4,12 +4,18 @@
 
 
 #include <memory>
+#include <unordered_set>
 
 
 
 
 class NuoStackControlBlock;
 typedef std::shared_ptr<NuoStackControlBlock> PNuoStackControlBlock;
+
+class NuoStackPtr;
+
+
+
 
 struct NuoCollectionImpl;
 
@@ -26,6 +32,7 @@ public:
 	~NuoCollection();
 
 	friend class NuoStackControlBlock;
+	friend class NuoStackPtr;
 
 private:
 
@@ -43,9 +50,13 @@ typedef std::shared_ptr<NuoMemberPtr> PNuoMemberPtr;
 class NuoObject
 {
 
-	// std::vector<PNuoMemberPtr> _members;
+	std::unordered_set<NuoStackControlBlock*> _blocks;
 
 public:
+
+	NuoStackPtr StackPointer();
+
+	friend class NuoStackControlBlock;
 
 };
 
@@ -71,9 +82,11 @@ public:
 class NuoStackPtr
 {
 
+	PNuoStackControlBlock _block;
+
 public:
 
-	NuoStackPtr(NuoObject* o);
+	NuoStackPtr(NuoObject* o, NuoCollection* manager);
 
 };
 

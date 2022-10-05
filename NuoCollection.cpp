@@ -42,12 +42,14 @@ public:
 	~NuoStackControlBlock();
 
 	friend class NuoCollection;
+	friend class NuoStackPtr;
 
 private:
 
 	NuoStackControlBlock(NuoCollection* collection, long long serial);
 
 	void CreateProxy();
+	void InitObject(NuoObject* o);
 
 };
 
@@ -66,6 +68,8 @@ NuoStackControlBlock::~NuoStackControlBlock()
 
 	lua_pushnil(luaState);
 	lua_setglobal(luaState, _serialString.c_str());
+
+	_object->_blocks.erase(this);
 }
 
 
@@ -79,6 +83,13 @@ void NuoStackControlBlock::CreateProxy()
 	lua_State* luaState = _manager->_impl->_luaState;
 	lua_newtable(luaState);
 	lua_setglobal(luaState, _serialString.c_str());
+}
+
+
+void NuoStackControlBlock::InitObject(NuoObject* o)
+{
+	_object.reset(o);
+	o->_blocks.insert(this);
 }
 
 
@@ -114,3 +125,10 @@ struct NuoStackPtrControlBlockImpl
 
 };
 
+
+
+NuoStackPtr::NuoStackPtr(NuoObject* o, NuoCollection* manager)
+{
+	_block = manager->CreateStackControlBlock();
+	_block->InitObject(o);
+}
