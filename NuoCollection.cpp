@@ -22,6 +22,7 @@ struct NuoCollectionImpl
 };
 
 
+
 class NuoStackControlBlock : public std::enable_shared_from_this<NuoStackControlBlock>
 {
 
@@ -42,7 +43,7 @@ public:
 	~NuoStackControlBlock();
 
 	friend class NuoCollection;
-	friend class NuoStackPtr;
+	friend class NuoStackPtrImpl;
 	friend class NuoObject;
 
 	long long Serial() const;
@@ -63,7 +64,8 @@ private:
 NuoStackControlBlock::NuoStackControlBlock(NuoCollection* collection, long long serial)
 	: _manager(collection),
 	  _serial(serial),
-	  _memberSerialCounter(0)
+	  _memberSerialCounter(0),
+	  _object(nullptr)
 {
 }
 
@@ -163,6 +165,12 @@ NuoCollection::~NuoCollection()
 }
 
 
+void NuoCollection::CollectGarbage()
+{
+	lua_gc(_impl->_luaState, LUA_GCCOLLECT);
+}
+
+
 void NuoCollection::CreateMetaTable()
 {
 	lua_State* luaState = _impl->_luaState;
@@ -201,7 +209,7 @@ PNuoStackControlBlock NuoCollection::CreateStackControlBlock()
 
 
 
-NuoStackPtr::NuoStackPtr(NuoObject* o, NuoCollection* manager)
+NuoStackPtrImpl::NuoStackPtrImpl(NuoObject* o, NuoCollection* manager)
 {
 	_block = manager->CreateStackControlBlock();
 	_block->CreateProxy();
@@ -211,16 +219,31 @@ NuoStackPtr::NuoStackPtr(NuoObject* o, NuoCollection* manager)
 }
 
 
-NuoStackPtr::NuoStackPtr()
+NuoStackPtrImpl::~NuoStackPtrImpl()
+{
+	_block.reset();
+}
+
+
+void NuoStackPtrImpl::Reset()
+{
+	NuoStackPtrImpl::~NuoStackPtrImpl();
+}
+
+
+NuoStackPtrImpl::NuoStackPtrImpl()
 {
 }
 
 
-
-
-NuoStackPtr NuoObject::StackPointer()
+NuoObject::~NuoObject()
 {
-	NuoStackPtr stackPtr;
+}
+
+
+NuoStackPtrImpl NuoObject::StackPointer()
+{
+	NuoStackPtrImpl stackPtr;
 	stackPtr._block = _block->shared_from_this();
 
 	return stackPtr;

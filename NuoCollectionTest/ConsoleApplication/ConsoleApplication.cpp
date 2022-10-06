@@ -4,9 +4,28 @@
 #include <iostream>
 #include "NuoCollection.h"
 
+
+class TestNuoObject : public NuoObject
+{
+
+public:
+
+    virtual ~TestNuoObject()
+    {
+        printf("Test Object Destructed.\n");
+    }
+
+};
+
+
 int main()
 {
-    std::cout << "Hello World!\n";
+    NuoCollection* manager = new NuoCollection();
+
+    NuoStackPtrImpl obj1(new TestNuoObject, manager);
+
+    //obj1.Reset();
+    manager->CollectGarbage();
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
