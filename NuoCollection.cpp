@@ -22,20 +22,20 @@ struct NuoCollectionImpl
 };
 
 
-class NuoStackControlBlock
+class NuoStackControlBlock : public std::enable_shared_from_this<NuoStackControlBlock>
 {
 
 	NuoCollection* _manager;
 
 	/**
-	 *   handle to the global lua object
+	 *   the global reference to the lua object proxy of "_object"
 	 */
 	long long _serial;
 	std::string _serialString;
 
 	long long _memberSerialCounter;
 
-	std::shared_ptr<NuoObject> _object;
+	NuoObject* _object;
 
 public:
 
@@ -43,12 +43,18 @@ public:
 
 	friend class NuoCollection;
 	friend class NuoStackPtr;
+	friend class NuoObject;
+
+	long long Serial() const;
+	std::string SerialString() const;
 
 private:
 
 	NuoStackControlBlock(NuoCollection* collection, long long serial);
 
 	void CreateProxy();
+	void PushProxy();
+
 	void InitObject(NuoObject* o);
 
 };
@@ -66,10 +72,24 @@ NuoStackControlBlock::~NuoStackControlBlock()
 {
 	lua_State* luaState = _manager->_impl->_luaState;
 
+	// clean the global reference to the proxy of "_object"
+	//
 	lua_pushnil(luaState);
 	lua_setglobal(luaState, _serialString.c_str());
 
-	_object->_blocks.erase(this);
+	_object->_block = nullptr;
+}
+
+
+long long NuoStackControlBlock::Serial() const
+{
+	return _serial;
+}
+
+
+std::string NuoStackControlBlock::SerialString() const
+{
+	return _serialString;
 }
 
 
@@ -86,12 +106,44 @@ void NuoStackControlBlock::CreateProxy()
 }
 
 
-void NuoStackControlBlock::InitObject(NuoObject* o)
+void NuoStackControlBlock::PushProxy()
 {
-	_object.reset(o);
-	o->_blocks.insert(this);
+	lua_State* luaState = _manager->_impl->_luaState;
+	lua_getglobal(luaState, _serialString.c_str());
 }
 
+
+void NuoStackControlBlock::InitObject(NuoObject* o)
+{
+	_object = o;
+	o->_block = this;
+
+	PushProxy();
+	
+	lua_State* luaState = _manager->_impl->_luaState;
+	lua_pushlightuserdata(luaState, (void*)o);
+	lua_setfield(luaState, -2, "proxy");
+
+	_manager->PushMetaTable();
+	lua_setmetatable(luaState, -2);
+
+	lua_pop(luaState, 1);
+}
+
+
+
+static int NuoObjectReclaim(lua_State* L)
+{
+	lua_getfield(L, -1, "proxy");
+	
+	if (lua_islightuserdata(L, -1))
+	{
+		NuoObject* o = (NuoObject*)lua_touserdata(L, -1);
+		delete o;
+	}
+
+	return 0;
+}
 
 
 NuoCollection::NuoCollection()
@@ -99,6 +151,8 @@ NuoCollection::NuoCollection()
 {
 	_impl = new NuoCollectionImpl();
 	_impl->_luaState = luaL_newstate();
+
+	CreateMetaTable();
 }
 
 
@@ -106,6 +160,33 @@ NuoCollection::~NuoCollection()
 {
 	lua_close(_impl->_luaState);
 	delete _impl;
+}
+
+
+void NuoCollection::CreateMetaTable()
+{
+	lua_State* luaState = _impl->_luaState;
+
+	lua_newtable(luaState);
+	lua_pushcclosure(luaState, NuoObjectReclaim, 0);
+	lua_setfield(luaState, -2, "__gc");
+	lua_setglobal(luaState, "nuoMetatable");
+}
+
+
+void NuoCollection::DestroyMetaTable()
+{
+	lua_State* luaState = _impl->_luaState;
+
+	lua_pushnil(luaState);
+	lua_setglobal(luaState, "nuoMetatable");
+}
+
+
+void NuoCollection::PushMetaTable()
+{
+	lua_State* luaState = _impl->_luaState;
+	lua_getglobal(luaState, "nuoMetatable");
 }
 
 
@@ -120,15 +201,48 @@ PNuoStackControlBlock NuoCollection::CreateStackControlBlock()
 
 
 
-struct NuoStackPtrControlBlockImpl
-{
-
-};
-
-
-
 NuoStackPtr::NuoStackPtr(NuoObject* o, NuoCollection* manager)
 {
 	_block = manager->CreateStackControlBlock();
+	_block->CreateProxy();
 	_block->InitObject(o);
+
+	o->_manager = manager;
+}
+
+
+NuoStackPtr::NuoStackPtr()
+{
+}
+
+
+
+
+NuoStackPtr NuoObject::StackPointer()
+{
+	NuoStackPtr stackPtr;
+	stackPtr._block = _block->shared_from_this();
+
+	return stackPtr;
+}
+
+
+
+bool NuoObject::PushProxy()
+{
+	if (_block)
+	{
+		_block->PushProxy();
+		return true;
+	}
+	else
+	{
+		for (NuoObject* o : _containers)
+		{
+			if (o->PushProxy())
+				return true;
+		}
+
+		return false;
+	}
 }

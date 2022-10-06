@@ -33,10 +33,15 @@ public:
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtr;
+	friend class NuoObject;
 
 private:
 
 	PNuoStackControlBlock CreateStackControlBlock();
+
+	void CreateMetaTable();
+	void DestroyMetaTable();
+	void PushMetaTable();
 
 };
 
@@ -50,13 +55,27 @@ typedef std::shared_ptr<NuoMemberPtr> PNuoMemberPtr;
 class NuoObject
 {
 
-	std::unordered_set<NuoStackControlBlock*> _blocks;
+	/**
+	 *   handle to the proxy lua object
+	 */
+	long long _serial;
+	std::string _serialString;
+
+	NuoCollection* _manager;
+	NuoStackControlBlock* _block;
+
+	std::unordered_set<NuoObject*> _containers;
 
 public:
 
 	NuoStackPtr StackPointer();
 
 	friend class NuoStackControlBlock;
+	friend class NuoStackPtr;
+
+private:
+
+	bool PushProxy();
 
 };
 
@@ -87,6 +106,12 @@ class NuoStackPtr
 public:
 
 	NuoStackPtr(NuoObject* o, NuoCollection* manager);
+
+	friend class NuoObject;
+
+private:
+
+	NuoStackPtr();
 
 };
 
