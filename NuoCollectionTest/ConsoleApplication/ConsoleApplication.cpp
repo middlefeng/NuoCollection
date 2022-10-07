@@ -5,10 +5,12 @@
 #include "NuoCollection.h"
 
 
-class TestNuoObject : public NuoObject
+class TestNuoObject : public NuoObject<TestNuoObject>
 {
 
 public:
+
+    std::string _name;
 
     virtual ~TestNuoObject()
     {
@@ -22,9 +24,13 @@ int main()
 {
     NuoCollection* manager = new NuoCollection();
 
-    NuoStackPtrImpl obj1(new TestNuoObject, manager);
+    NuoStackPtr<TestNuoObject> obj1(new TestNuoObject, manager);
+    NuoStackPtr<TestNuoObject> obj2 = obj1;
 
-    //obj1.Reset();
+    obj1->_name = "abc";
+
+    obj1.Reset();
+    obj2.Reset();
     manager->CollectGarbage();
 }
 

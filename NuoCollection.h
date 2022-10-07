@@ -33,7 +33,7 @@ public:
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
-	friend class NuoObject;
+	friend class NuoObjectImpl;
 
 	void CollectGarbage();
 
@@ -54,7 +54,7 @@ typedef std::shared_ptr<NuoMemberPtr> PNuoMemberPtr;
 
 
 
-class NuoObject
+class NuoObjectImpl
 {
 
 	/**
@@ -66,13 +66,11 @@ class NuoObject
 	NuoCollection* _manager;
 	NuoStackControlBlock* _block;
 
-	std::unordered_set<NuoObject*> _containers;
+	std::unordered_set<NuoObjectImpl*> _containers;
 
 public:
 
-	virtual ~NuoObject();
-
-	NuoStackPtrImpl StackPointer();
+	virtual ~NuoObjectImpl();
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
@@ -81,8 +79,11 @@ private:
 
 	bool PushProxy();
 
-};
+protected:
 
+	NuoStackPtrImpl StackPointerImpl();
+
+};
 
 
 
@@ -90,7 +91,7 @@ private:
 class NuoMemberPtr
 {
 
-	std::shared_ptr<NuoObject> _object;
+	std::shared_ptr<NuoObjectImpl> _object;
 
 public:
 
@@ -104,14 +105,18 @@ public:
 class NuoStackPtrImpl
 {
 
+protected:
+
 	PNuoStackControlBlock _block;
+
+	NuoStackPtrImpl(NuoObjectImpl* o, NuoCollection* manager);
+	virtual ~NuoStackPtrImpl();
+
+	NuoObjectImpl* ObjectImpl();
 
 public:
 
-	NuoStackPtrImpl(NuoObject* o, NuoCollection* manager);
-	~NuoStackPtrImpl();
-
-	friend class NuoObject;
+	friend class NuoObjectImpl;
 
 	void Reset();
 
@@ -122,7 +127,71 @@ private:
 };
 
 
+template <class T>
+class NuoObject;
 
+
+template <class T>
+class NuoStackPtr : public NuoStackPtrImpl
+{
+
+public:
+
+	NuoStackPtr(T* o, NuoCollection* manager);
+	NuoStackPtr(const NuoStackPtrImpl& impl);
+
+	T* operator ->();
+};
+
+
+
+template <class T>
+NuoStackPtr<T>::NuoStackPtr(T* o, NuoCollection* manager)
+	: NuoStackPtrImpl(o, manager)
+{
+}
+
+
+template <class T>
+NuoStackPtr<T>::NuoStackPtr(const NuoStackPtrImpl& impl)
+{
+	_block = impl._block;
+}
+
+
+template <class T>
+T* NuoStackPtr<T>::operator ->()
+{
+	return (T*)ObjectImpl();
+}
+
+
+template <class T>
+class NuoObject : public NuoObjectImpl
+{
+
+public:
+
+	NuoObject();
+
+	NuoStackPtr<T> StackPointer();
+
+};
+
+
+template <class T>
+NuoObject<T>::NuoObject()
+	: NuoObjectImpl()
+{
+}
+
+
+template <class T>
+NuoStackPtr<T> NuoObject<T>::StackPointer()
+{
+	NuoStackPtr<T> stackPtr = StackPointerImpl();
+	return stackPtr;
+}
 
 
 

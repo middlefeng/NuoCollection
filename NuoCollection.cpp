@@ -36,7 +36,7 @@ class NuoStackControlBlock : public std::enable_shared_from_this<NuoStackControl
 
 	long long _memberSerialCounter;
 
-	NuoObject* _object;
+	NuoObjectImpl* _object;
 
 public:
 
@@ -44,7 +44,7 @@ public:
 
 	friend class NuoCollection;
 	friend class NuoStackPtrImpl;
-	friend class NuoObject;
+	friend class NuoObjectImpl;
 
 	long long Serial() const;
 	std::string SerialString() const;
@@ -56,7 +56,7 @@ private:
 	void CreateProxy();
 	void PushProxy();
 
-	void InitObject(NuoObject* o);
+	void InitObject(NuoObjectImpl* o);
 
 };
 
@@ -115,7 +115,7 @@ void NuoStackControlBlock::PushProxy()
 }
 
 
-void NuoStackControlBlock::InitObject(NuoObject* o)
+void NuoStackControlBlock::InitObject(NuoObjectImpl* o)
 {
 	_object = o;
 	o->_block = this;
@@ -140,7 +140,7 @@ static int NuoObjectReclaim(lua_State* L)
 	
 	if (lua_islightuserdata(L, -1))
 	{
-		NuoObject* o = (NuoObject*)lua_touserdata(L, -1);
+		NuoObjectImpl* o = (NuoObjectImpl*)lua_touserdata(L, -1);
 		delete o;
 	}
 
@@ -209,7 +209,7 @@ PNuoStackControlBlock NuoCollection::CreateStackControlBlock()
 
 
 
-NuoStackPtrImpl::NuoStackPtrImpl(NuoObject* o, NuoCollection* manager)
+NuoStackPtrImpl::NuoStackPtrImpl(NuoObjectImpl* o, NuoCollection* manager)
 {
 	_block = manager->CreateStackControlBlock();
 	_block->CreateProxy();
@@ -225,6 +225,12 @@ NuoStackPtrImpl::~NuoStackPtrImpl()
 }
 
 
+NuoObjectImpl* NuoStackPtrImpl::ObjectImpl()
+{
+	return _block->_object;
+}
+
+
 void NuoStackPtrImpl::Reset()
 {
 	NuoStackPtrImpl::~NuoStackPtrImpl();
@@ -236,12 +242,12 @@ NuoStackPtrImpl::NuoStackPtrImpl()
 }
 
 
-NuoObject::~NuoObject()
+NuoObjectImpl::~NuoObjectImpl()
 {
 }
 
 
-NuoStackPtrImpl NuoObject::StackPointer()
+NuoStackPtrImpl NuoObjectImpl::StackPointerImpl()
 {
 	NuoStackPtrImpl stackPtr;
 	stackPtr._block = _block->shared_from_this();
@@ -251,7 +257,7 @@ NuoStackPtrImpl NuoObject::StackPointer()
 
 
 
-bool NuoObject::PushProxy()
+bool NuoObjectImpl::PushProxy()
 {
 	if (_block)
 	{
@@ -260,10 +266,19 @@ bool NuoObject::PushProxy()
 	}
 	else
 	{
-		for (NuoObject* o : _containers)
+		for (NuoObjectImpl* o : _containers)
 		{
 			if (o->PushProxy())
+			{
+				// now a container's proxy is on stack, retrieve the proxy of
+				// this object from its field
+
+				lua_State* state = _manager->_impl->_luaState;
+				lua_getfield(state, -1, _serialString.c_str());
+				lua_remove(state, -1);
+
 				return true;
+			}
 		}
 
 		return false;
