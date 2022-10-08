@@ -142,10 +142,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\NuoCollection.cpp" />
+    <ClCompile Include="..\..\Utils\Tree.cpp" />
     <ClCompile Include="ConsoleApplication.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\NuoCollection.h" />
+    <ClInclude Include="..\..\Utils\Tree.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Lua\Lua\LuaLib\LuaLib.vcxproj">
