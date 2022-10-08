@@ -50,6 +50,11 @@ private:
 };
 
 
+/***********************************************************************
+ *
+ *  Root colllectable object implementation
+ *
+ ***********************************************************************/
 
 
 class NuoObjectImpl
@@ -68,7 +73,7 @@ class NuoObjectImpl
 
 public:
 
-	virtual ~NuoObjectImpl();
+	~NuoObjectImpl();
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
@@ -89,8 +94,16 @@ protected:
 template <class T> class NuoStackPtr;
 
 
+/***********************************************************************
+ *
+ *  Member smart pointer implementation
+ *
+ ***********************************************************************/
+
 class NuoMemberPtrImpl
 {
+
+protected:
 
 	NuoObjectImpl* _thisObject;
 	NuoObjectImpl* _memberObject;
@@ -118,6 +131,9 @@ public:
 	NuoMemberPtr(Base* b);
 
 	NuoMemberPtr<Base, T>& operator = (NuoStackPtr<T>& o);
+	NuoMemberPtr<Base, T>& operator = (NuoMemberPtr <Base, T>& o);
+
+	T* operator ->();
 
 };
 
@@ -134,6 +150,21 @@ NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoStackPtr<T>& o)
 {
 	SetMember(o);
 	return *this;
+}
+
+
+template <class Base, class T>
+NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoMemberPtr <Base, T>& o)
+{
+	SetMember(o._thisObject);
+	return *this;
+}
+
+
+template <class Base, class T>
+T* NuoMemberPtr<Base, T>::operator ->()
+{
+	return _memberObject;
 }
 
 
@@ -192,6 +223,11 @@ public:
 	NuoStackPtr(const NuoStackPtrImpl& impl);
 
 	T* operator ->();
+
+	NuoStackPtr<T>& operator = (NuoStackPtr<T>& o);
+
+	template <class Base>
+	NuoStackPtr<T>& operator = (NuoMemberPtr<Base, T>& o);
 };
 
 
@@ -214,6 +250,22 @@ template <class T>
 T* NuoStackPtr<T>::operator ->()
 {
 	return (T*)ObjectImpl();
+}
+
+
+template <class T>
+NuoStackPtr<T>& NuoStackPtr<T>::operator = (NuoStackPtr<T>& o)
+{
+	_block = o._block;
+}
+
+
+template <class T>
+template <class Base>
+NuoStackPtr<T>& NuoStackPtr<T>::operator = (NuoMemberPtr<Base, T>& o)
+{
+	NuoStackPtrImpl stackPtrImpl = o._memberObject->StackPointerImpl();
+	_block = stackPtrImpl._block;
 }
 
 

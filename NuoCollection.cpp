@@ -23,6 +23,9 @@ struct NuoCollectionImpl
 
 
 
+/**
+ *   stack references are managed by reference-counting
+ */
 class NuoStackControlBlock : public std::enable_shared_from_this<NuoStackControlBlock>
 {
 
@@ -33,8 +36,6 @@ class NuoStackControlBlock : public std::enable_shared_from_this<NuoStackControl
 	 */
 	long long _serial;
 	std::string _serialString;
-
-	long long _memberSerialCounter;
 
 	NuoObjectImpl* _object;
 
@@ -51,7 +52,13 @@ public:
 
 private:
 
+	// construct a new block with a new serial
+	//
 	NuoStackControlBlock(NuoCollection* collection, long long serial);
+
+	//  re-construct a block for an object
+	//
+	NuoStackControlBlock(NuoObjectImpl* o);
 
 	void CreateProxy();
 	void PushProxy();
@@ -64,8 +71,15 @@ private:
 NuoStackControlBlock::NuoStackControlBlock(NuoCollection* collection, long long serial)
 	: _manager(collection),
 	  _serial(serial),
-	  _memberSerialCounter(0),
 	  _object(nullptr)
+{
+}
+
+
+NuoStackControlBlock::NuoStackControlBlock(NuoObjectImpl* o)
+	: _manager(o->_manager),
+	  _serial(o->_serial),
+	  _object(o)
 {
 }
 
@@ -237,6 +251,8 @@ void NuoMemberPtrImpl::SetMember(NuoObjectImpl* o)
 		lua_pushnil(luaState);
 		lua_setfield(luaState, -2, _memberObject->_serialString.c_str());
 		lua_pop(luaState, 1);
+
+		_memberObject->_containers.erase(_thisObject);
 	}
 
 	_memberObject = o;
@@ -299,7 +315,16 @@ NuoObjectImpl::~NuoObjectImpl()
 NuoStackPtrImpl NuoObjectImpl::StackPointerImpl()
 {
 	NuoStackPtrImpl stackPtr;
-	stackPtr._block = _block->shared_from_this();
+
+	if (_block)
+	{
+		stackPtr._block = _block->shared_from_this();
+	}
+	else
+	{
+		stackPtr._block.reset(new NuoStackControlBlock(this));
+		_block = stackPtr._block.get();
+	}
 
 	return stackPtr;
 }
