@@ -209,6 +209,16 @@ PNuoStackControlBlock NuoCollection::CreateStackControlBlock()
 
 
 
+
+NuoMemberPtr::NuoMemberPtr(NuoObjectImpl* o)
+	: _thisObject(o),
+	  _memberObject(nullptr)
+{
+}
+
+
+
+
 NuoStackPtrImpl::NuoStackPtrImpl(NuoObjectImpl* o, NuoCollection* manager)
 {
 	_block = manager->CreateStackControlBlock();

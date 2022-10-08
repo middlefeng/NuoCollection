@@ -12,12 +12,22 @@ public:
 
     std::string _name;
 
+    NuoMemberPtr _field1;
+
+    TestNuoObject();
+
     virtual ~TestNuoObject()
     {
         printf("Test Object Destructed.\n");
     }
 
 };
+
+TestNuoObject::TestNuoObject()
+    : _field1(this)
+{
+}
+
 
 
 int main()

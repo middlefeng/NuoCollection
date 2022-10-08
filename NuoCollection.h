@@ -91,11 +91,12 @@ protected:
 class NuoMemberPtr
 {
 
-	std::shared_ptr<NuoObjectImpl> _object;
+	NuoObjectImpl* _thisObject;
+	NuoObjectImpl* _memberObject;
 
 public:
 
-	NuoMemberPtr();
+	NuoMemberPtr(NuoObjectImpl* o);
 
 };
 
