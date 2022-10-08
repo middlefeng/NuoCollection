@@ -210,10 +210,42 @@ PNuoStackControlBlock NuoCollection::CreateStackControlBlock()
 
 
 
-NuoMemberPtr::NuoMemberPtr(NuoObjectImpl* o)
+NuoMemberPtrImpl::NuoMemberPtrImpl(NuoObjectImpl* o)
 	: _thisObject(o),
 	  _memberObject(nullptr)
 {
+}
+
+
+NuoMemberPtrImpl::~NuoMemberPtrImpl()
+{
+	SetMember(nullptr);
+}
+
+
+void NuoMemberPtrImpl::SetMember(NuoObjectImpl* o)
+{
+	if (!_thisObject->PushProxy())
+		return;
+
+	lua_State* luaState = _thisObject->_manager->_impl->_luaState;
+
+	// dissociate the current member
+	//
+	if (_memberObject)
+	{
+		lua_pushnil(luaState);
+		lua_setfield(luaState, -2, _memberObject->_serialString.c_str());
+		lua_pop(luaState, 1);
+	}
+
+	_memberObject = o;
+
+	if (!o || !o->PushProxy())
+		return;
+	
+	lua_setfield(luaState, -2, o->_serialString.c_str());
+	lua_pop(luaState, 1);
 }
 
 

@@ -12,7 +12,7 @@ public:
 
     std::string _name;
 
-    NuoMemberPtr _field1;
+    NuoMemberPtrImpl _field1;
 
     TestNuoObject();
 

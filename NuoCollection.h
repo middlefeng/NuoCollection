@@ -13,6 +13,7 @@ class NuoStackControlBlock;
 typedef std::shared_ptr<NuoStackControlBlock> PNuoStackControlBlock;
 
 class NuoStackPtrImpl;
+class NuoMemberPtrImpl;
 
 
 
@@ -33,6 +34,7 @@ public:
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
+	friend class NuoMemberPtrImpl;
 	friend class NuoObjectImpl;
 
 	void CollectGarbage();
@@ -47,10 +49,6 @@ private:
 
 };
 
-
-
-class NuoMemberPtr;
-typedef std::shared_ptr<NuoMemberPtr> PNuoMemberPtr;
 
 
 
@@ -74,6 +72,7 @@ public:
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
+	friend class NuoMemberPtrImpl;
 
 private:
 
@@ -88,7 +87,7 @@ protected:
 
 
 
-class NuoMemberPtr
+class NuoMemberPtrImpl
 {
 
 	NuoObjectImpl* _thisObject;
@@ -96,7 +95,12 @@ class NuoMemberPtr
 
 public:
 
-	NuoMemberPtr(NuoObjectImpl* o);
+	NuoMemberPtrImpl(NuoObjectImpl* o);
+	~NuoMemberPtrImpl();
+
+protected:
+
+	void SetMember(NuoObjectImpl* o);
 
 };
 
