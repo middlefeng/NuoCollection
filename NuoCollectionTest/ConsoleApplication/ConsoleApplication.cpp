@@ -2,7 +2,27 @@
 //
 
 #include <iostream>
+
 #include "NuoCollection.h"
+#include "Utils/Tree.h"
+
+
+class TestBinTree : public CollectablebinaryTreeNode
+{
+
+public:
+
+    TestBinTree(const std::string& name)
+        : CollectablebinaryTreeNode(name)
+    {
+    }
+
+    ~TestBinTree()
+    {
+        printf("Destructed %s.\n", Name().c_str());
+    }
+
+};
 
 
 class TestNuoMemberObject;
@@ -53,6 +73,7 @@ int main()
 {
     NuoCollection* manager = new NuoCollection();
 
+    /*
     NuoStackPtr<TestNuoObject> obj1(new TestNuoObject, manager);
     NuoStackPtr<TestNuoObject> obj2 = obj1;
 
@@ -65,6 +86,22 @@ int main()
 
     obj1.Reset();
     obj2.Reset();
+    */
+
+    NuoStackPtr<TestBinTree> root(new TestBinTree("root"), manager);
+    NuoStackPtr<TestBinTree> cl(new TestBinTree("cl"), manager);
+    NuoStackPtr<TestBinTree> cr(new TestBinTree("cr"), manager);
+
+    root->_l = cl;
+    root->_r = cr;
+
+    std::string treeDesc = root->ToString();
+    printf("Tree:\n%s", treeDesc.c_str());
+
+    root.Reset();
+    cl.Reset();
+    cr.Reset();
+
     manager->CollectGarbage();
 }
 

@@ -73,7 +73,7 @@ class NuoObjectImpl
 
 public:
 
-	~NuoObjectImpl();
+	virtual ~NuoObjectImpl();
 
 	friend class NuoStackControlBlock;
 	friend class NuoStackPtrImpl;
@@ -130,10 +130,14 @@ public:
 
 	NuoMemberPtr(Base* b);
 
-	NuoMemberPtr<Base, T>& operator = (NuoStackPtr<T>& o);
+	template <class TO>
+	NuoMemberPtr<Base, T>& operator = (NuoStackPtr<TO>& o);
+
 	NuoMemberPtr<Base, T>& operator = (NuoMemberPtr <Base, T>& o);
 
 	T* operator ->();
+
+	operator bool();
 
 };
 
@@ -146,7 +150,8 @@ NuoMemberPtr<Base, T>::NuoMemberPtr(Base* b)
 
 
 template <class Base, class T>
-NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoStackPtr<T>& o)
+template <class TO>
+NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoStackPtr<TO>& o)
 {
 	SetMember(o);
 	return *this;
@@ -164,7 +169,14 @@ NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoMemberPtr <Base, T>
 template <class Base, class T>
 T* NuoMemberPtr<Base, T>::operator ->()
 {
-	return _memberObject;
+	return (T*)_memberObject;
+}
+
+
+template <class Base, class T>
+NuoMemberPtr<Base, T>::operator bool()
+{
+	return _memberObject != nullptr;
 }
 
 
@@ -224,7 +236,8 @@ public:
 
 	T* operator ->();
 
-	NuoStackPtr<T>& operator = (NuoStackPtr<T>& o);
+	template <class TO>
+	NuoStackPtr<T>& operator = (NuoStackPtr<TO>& o);
 
 	template <class Base>
 	NuoStackPtr<T>& operator = (NuoMemberPtr<Base, T>& o);
@@ -254,7 +267,8 @@ T* NuoStackPtr<T>::operator ->()
 
 
 template <class T>
-NuoStackPtr<T>& NuoStackPtr<T>::operator = (NuoStackPtr<T>& o)
+template <class TO>
+NuoStackPtr<T>& NuoStackPtr<T>::operator = (NuoStackPtr<TO>& o)
 {
 	_block = o._block;
 }
