@@ -86,6 +86,8 @@ protected:
 
 
 
+template <class T> class NuoStackPtr;
+
 
 class NuoMemberPtrImpl
 {
@@ -101,11 +103,46 @@ public:
 protected:
 
 	void SetMember(NuoObjectImpl* o);
+	void SetMember(NuoStackPtrImpl& stackPtr);
 
 };
 
 
 
+template <class Base, class T>
+class NuoMemberPtr : NuoMemberPtrImpl
+{
+
+public: 
+
+	NuoMemberPtr(Base* b);
+
+	NuoMemberPtr<Base, T>& operator = (NuoStackPtr<T>& o);
+
+};
+
+
+template <class Base, class T>
+NuoMemberPtr<Base, T>::NuoMemberPtr(Base* b)
+	: NuoMemberPtrImpl(b)
+{
+}
+
+
+template <class Base, class T>
+NuoMemberPtr<Base, T>& NuoMemberPtr<Base, T>::operator = (NuoStackPtr<T>& o)
+{
+	SetMember(o);
+	return *this;
+}
+
+
+
+/***********************************************************************
+ *
+ *  Stack smart pointer implementation
+ *
+ ***********************************************************************/
 
 class NuoStackPtrImpl
 {
@@ -122,6 +159,7 @@ protected:
 public:
 
 	friend class NuoObjectImpl;
+	friend class NuoMemberPtrImpl;
 
 	void Reset();
 
@@ -132,8 +170,16 @@ private:
 };
 
 
+
 template <class T>
 class NuoObject;
+
+
+/***********************************************************************
+ *
+ *  Stack smart pointer
+ *
+ ***********************************************************************/
 
 
 template <class T>
@@ -170,6 +216,13 @@ T* NuoStackPtr<T>::operator ->()
 	return (T*)ObjectImpl();
 }
 
+
+
+/***********************************************************************
+ *
+ *  NuoObject template base
+ * 
+ ***********************************************************************/
 
 template <class T>
 class NuoObject : public NuoObjectImpl

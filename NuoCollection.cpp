@@ -240,12 +240,19 @@ void NuoMemberPtrImpl::SetMember(NuoObjectImpl* o)
 	}
 
 	_memberObject = o;
+	o->_containers.insert(_thisObject);
 
 	if (!o || !o->PushProxy())
 		return;
 	
 	lua_setfield(luaState, -2, o->_serialString.c_str());
 	lua_pop(luaState, 1);
+}
+
+
+void NuoMemberPtrImpl::SetMember(NuoStackPtrImpl& stackPtr)
+{
+	SetMember(stackPtr.ObjectImpl());
 }
 
 

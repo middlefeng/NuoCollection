@@ -5,6 +5,9 @@
 #include "NuoCollection.h"
 
 
+class TestNuoMemberObject;
+
+
 class TestNuoObject : public NuoObject<TestNuoObject>
 {
 
@@ -12,7 +15,7 @@ public:
 
     std::string _name;
 
-    NuoMemberPtrImpl _field1;
+    NuoMemberPtr<TestNuoObject, TestNuoMemberObject> _field1;
 
     TestNuoObject();
 
@@ -30,6 +33,22 @@ TestNuoObject::TestNuoObject()
 
 
 
+class TestNuoMemberObject : public NuoObject<TestNuoMemberObject>
+{
+
+public:
+
+    virtual ~TestNuoMemberObject()
+    {
+        printf("Test Member Destructed.\n");
+    }
+
+};
+
+
+
+
+
 int main()
 {
     NuoCollection* manager = new NuoCollection();
@@ -37,7 +56,12 @@ int main()
     NuoStackPtr<TestNuoObject> obj1(new TestNuoObject, manager);
     NuoStackPtr<TestNuoObject> obj2 = obj1;
 
+    NuoStackPtr<TestNuoMemberObject> member(new TestNuoMemberObject(), manager);
+
     obj1->_name = "abc";
+    obj1->_field1 = member;
+
+    member.Reset();
 
     obj1.Reset();
     obj2.Reset();
