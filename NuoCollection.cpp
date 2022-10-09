@@ -133,6 +133,8 @@ void NuoStackControlBlock::InitObject(NuoObjectImpl* o)
 {
 	_object = o;
 	o->_block = this;
+	o->_serial = _serial;
+	o->_serialString = _serialString;
 
 	PushProxy();
 	
@@ -228,6 +230,7 @@ NuoMemberPtrImpl::NuoMemberPtrImpl(NuoObjectImpl* o)
 	: _thisObject(o),
 	  _memberObject(nullptr)
 {
+	_thisObject->AddMember(this);
 }
 
 
@@ -239,8 +242,21 @@ NuoMemberPtrImpl::~NuoMemberPtrImpl()
 
 void NuoMemberPtrImpl::SetMember(NuoObjectImpl* o)
 {
+	// this has to be done regardless the proxy exists or not
+	//
+	if (_memberObject)
+	{
+		_memberObject->_containers.erase(_thisObject);
+	}
+
 	if (!_thisObject->PushProxy())
+	{
+		// this has to be done even when the proxy has been destroyed
+		//
+		_memberObject = o;
+
 		return;
+	}
 
 	lua_State* luaState = _thisObject->_manager->_impl->_luaState;
 
@@ -251,8 +267,6 @@ void NuoMemberPtrImpl::SetMember(NuoObjectImpl* o)
 		lua_pushnil(luaState);
 		lua_setfield(luaState, -2, _memberObject->_serialString.c_str());
 		lua_pop(luaState, 1);
-
-		_memberObject->_containers.erase(_thisObject);
 	}
 
 	_memberObject = o;
@@ -309,6 +323,31 @@ NuoStackPtrImpl::NuoStackPtrImpl()
 
 NuoObjectImpl::~NuoObjectImpl()
 {
+	bool deletionHappend = false;
+
+	do
+	{
+		deletionHappend = false;
+
+		for (NuoObjectImpl* object : _containers)
+		{
+			for (NuoMemberPtrImpl* member : object->_members)
+			{
+				if (member->_memberObject == this)
+				{
+					member->SetMember(nullptr);
+					deletionHappend = true;
+				}
+			}
+
+			// if a deletion of a relationship happens, that means "_containers" must
+			// have changed, the iteration has to be terminated and started over again
+			//
+			if (deletionHappend)
+				break;
+		}
+	}
+	while (deletionHappend);
 }
 
 
@@ -330,8 +369,13 @@ NuoStackPtrImpl NuoObjectImpl::StackPointerImpl()
 }
 
 
-
 bool NuoObjectImpl::PushProxy()
+{
+	return PushProxy(this);
+}
+
+
+bool NuoObjectImpl::PushProxy(NuoObjectImpl* exclude)
 {
 	if (_block)
 	{
@@ -342,7 +386,10 @@ bool NuoObjectImpl::PushProxy()
 	{
 		for (NuoObjectImpl* o : _containers)
 		{
-			if (o->PushProxy())
+			if (o == exclude)
+				continue;
+
+			if (o->PushProxy(exclude))
 			{
 				// now a container's proxy is on stack, retrieve the proxy of
 				// this object from its field
@@ -357,4 +404,10 @@ bool NuoObjectImpl::PushProxy()
 
 		return false;
 	}
+}
+
+
+void NuoObjectImpl::AddMember(NuoMemberPtrImpl* member)
+{
+	_members.insert(member);
 }

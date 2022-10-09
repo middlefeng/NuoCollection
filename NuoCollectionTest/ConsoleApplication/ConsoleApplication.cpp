@@ -58,6 +58,13 @@ class TestNuoMemberObject : public NuoObject<TestNuoMemberObject>
 
 public:
 
+    NuoMemberPtr<TestNuoMemberObject, TestNuoObject> _parent;
+
+    TestNuoMemberObject()
+        : _parent(this)
+    {
+    }
+
     virtual ~TestNuoMemberObject()
     {
         printf("Test Member Destructed.\n");
@@ -73,7 +80,6 @@ int main()
 {
     NuoCollection* manager = new NuoCollection();
 
-    /*
     NuoStackPtr<TestNuoObject> obj1(new TestNuoObject, manager);
     NuoStackPtr<TestNuoObject> obj2 = obj1;
 
@@ -81,12 +87,16 @@ int main()
 
     obj1->_name = "abc";
     obj1->_field1 = member;
+    member->_parent = obj1;
 
     member.Reset();
 
     obj1.Reset();
     obj2.Reset();
-    */
+
+    manager->CollectGarbage();
+
+    // Tree
 
     NuoStackPtr<TestBinTree> root(new TestBinTree("root"), manager);
     NuoStackPtr<TestBinTree> cl(new TestBinTree("cl"), manager);

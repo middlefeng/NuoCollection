@@ -69,7 +69,14 @@ class NuoObjectImpl
 	NuoCollection* _manager;
 	NuoStackControlBlock* _block;
 
+	/**
+	 *   lists to traverse all upper/lower relationships
+	 *   
+	 *   _members is an immutable list determined by the subclass's
+	 *   member fields definition
+	 */
 	std::unordered_set<NuoObjectImpl*> _containers;
+	std::unordered_set<NuoMemberPtrImpl*> _members;
 
 public:
 
@@ -82,6 +89,8 @@ public:
 private:
 
 	bool PushProxy();
+	bool PushProxy(NuoObjectImpl* exclude);
+	void AddMember(NuoMemberPtrImpl* member);
 
 protected:
 
@@ -112,6 +121,8 @@ public:
 
 	NuoMemberPtrImpl(NuoObjectImpl* o);
 	~NuoMemberPtrImpl();
+
+	friend class NuoObjectImpl;
 
 protected:
 
